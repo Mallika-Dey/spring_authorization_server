@@ -24,8 +24,10 @@ public class RegisteredClientConfig {
                 .clientAuthenticationMethod(ClientAuthenticationMethod.NONE) // public client
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("https://oidcdebugger.com/debug")
+//                .redirectUri("https://oidcdebugger.com/debug")
+                .redirectUri("http://localhost:5173/callback")
                 .scope("openid")
+                .scope("profile")
                 .scope("api.read")
                 .clientSettings(ClientSettings.builder()
                         .requireProofKey(true)          // enable PKCE

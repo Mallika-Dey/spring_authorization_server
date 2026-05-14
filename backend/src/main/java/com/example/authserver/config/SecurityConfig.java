@@ -34,6 +34,7 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -50,22 +51,36 @@ import java.util.UUID;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Bean
-    @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
-            throws Exception {
-        http
-                .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
-                        .anyRequest().authenticated()
-                )
-                // Form login handles the redirect to the login page from the
-                // authorization server filter chain
-                .formLogin(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable());
+  @Bean
+  @Order(2)
+  public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
+          throws Exception {
+    HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
 
-        return http.build();
-    }
+    requestCache.setRequestMatcher(request ->
+            !request.getRequestURI().startsWith("/.well-known/")
+    );
+
+
+    http
+            .requestCache(cache -> cache.requestCache(requestCache))
+            .authorizeHttpRequests((authorize) -> authorize
+                    .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                    .anyRequest().authenticated()
+            )
+            // Form login handles the redirect to the login page from the
+            // authorization server filter chain
+            .formLogin(Customizer.withDefaults())
+            .logout(logout -> logout
+                    .logoutUrl("/logout")
+                    .logoutSuccessUrl("http://localhost:5173")
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID")
+            )
+            .csrf(csrf -> csrf.disable());
+
+    return http.build();
+  }
 
    /* @Bean
     public UserDetailsService userDetailsService() {
@@ -78,19 +93,19 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager(userDetails);
     }*/
 
-    @Bean
-    public AuthorizationServerSettings authorizationServerSettings() {
-        return AuthorizationServerSettings.builder().build();
-    }
+  @Bean
+  public AuthorizationServerSettings authorizationServerSettings() {
+    return AuthorizationServerSettings.builder().build();
+  }
 
-    @Bean
+  /*  @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
                 "https://oidcdebugger.com",
                 "https://oauthdebugger.com",
-                "http://localhost:3000"
+                "http://localhost:5173"
         ));
 
         config.setAllowedMethods(List.of(
@@ -106,22 +121,39 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/oauth2/**", config);
 
         return source;
-    }
+    }*/
 
-    @Bean
-    public AuthenticationManager authenticationManager(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
 
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder);
+    CorsConfiguration config = new CorsConfiguration();
 
-        return new ProviderManager(provider);
-    }
+    config.setAllowedOrigins(List.of("http://localhost:5173"));
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    config.setAllowedHeaders(List.of("*"));
+    config.setAllowCredentials(true);
 
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+    source.registerCorsConfiguration("/**", config);
+
+    return source;
+  }
+
+  @Bean
+  public AuthenticationManager authenticationManager(
+          UserDetailsService userDetailsService,
+          PasswordEncoder passwordEncoder) {
+
+    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+    provider.setPasswordEncoder(passwordEncoder);
+
+    return new ProviderManager(provider);
+  }
+
+  @Bean
+  PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 
 }
