@@ -10,6 +10,12 @@ export const userManager = new UserManager({
     userStore: new WebStorageStateStore({ store: window.sessionStorage })
 });
 
+export const refreshTokens = async () => {
+    const user = await userManager.signinSilent();
+
+    return user;
+};
+
 export const logout = async () => {
     const user = await userManager.getUser();
 

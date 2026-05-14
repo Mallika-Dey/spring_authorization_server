@@ -31,7 +31,7 @@ public class RegisteredClientConfig {
                 .scope("api.read")
                 .clientSettings(ClientSettings.builder()
                         .requireProofKey(true)          // enable PKCE
-                        .requireAuthorizationConsent(true)
+                        .requireAuthorizationConsent(false)
                         .build())
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(Duration.ofMinutes(10))
